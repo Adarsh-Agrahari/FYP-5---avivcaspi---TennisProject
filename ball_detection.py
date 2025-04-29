@@ -167,7 +167,7 @@ class BallDetector:
 
 if __name__ == "__main__":
     ball_detector = BallDetector('saved states/tracknet_weights_lr_1.0_epochs_150_last_trained.pth')
-    cap = cv2.VideoCapture('input_videos/input_video-1.mp4')
+    cap = cv2.VideoCapture('input_videos/input_video-3.mp4')
     # get videos properties
     fps, length, v_width, v_height = get_video_properties(cap)
 
@@ -182,7 +182,7 @@ if __name__ == "__main__":
 
 
     cap.release()
-    cv2.destroyAllWindows()
+    # cv2.destroyAllWindows()
 
     from scipy.interpolate import interp1d
 

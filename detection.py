@@ -11,7 +11,8 @@ from sort import Sort
 from utils import get_video_properties, get_dtype
 import matplotlib.pyplot as plt
 
-
+# Create output folder if not exist
+os.makedirs('output', exist_ok=True)
 class DetectionModel:
     def __init__(self, dtype=torch.FloatTensor):
         self.detection_model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
@@ -247,20 +248,26 @@ class DetectionModel:
                 positions_2.append(positions_2[-1])
                 mask.append(False)
             else:
-                positions_2.append(np.array([0, 0]))
+                positions_2.append(np.array([0.0, 0.0], dtype=np.float32))
                 mask.append(False)
+    
+        # Convert mask to a NumPy array
+        mask = np.array(mask)
 
         # Smooth both feet locations
         positions_1 = np.array(positions_1)
         smoothed_1 = np.zeros_like(positions_1)
         smoothed_1[:, 0] = signal.savgol_filter(positions_1[:, 0], 7, 2)
         smoothed_1[:, 1] = signal.savgol_filter(positions_1[:, 1], 7, 2)
+
         positions_2 = np.array(positions_2)
         smoothed_2 = np.zeros_like(positions_2)
         smoothed_2[:, 0] = signal.savgol_filter(positions_2[:, 0], 7, 2)
         smoothed_2[:, 1] = signal.savgol_filter(positions_2[:, 1], 7, 2)
 
-        smoothed_2[not mask, :] = [None, None]
+        # Use negation on the NumPy array mask
+        smoothed_2[~mask, :] = [np.nan, np.nan]
+
         return smoothed_1, smoothed_2
 
 
@@ -342,14 +349,14 @@ if __name__ == "__main__":
             frame = model.detect_top_persons(frame, court_detector, frame_i)
             out.write(frame)
             cv2.imshow('df', frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                cv2.destroyAllWindows()
+            # if cv2.waitKey(1) & 0xFF == ord('q'):
+                # cv2.destroyAllWindows()
 
         else:
             break
     video.release()
     out.release()
-    cv2.destroyAllWindows()
+    # cv2.destroyAllWindows()
 
 
     dists = model.calculate_all_persons_dists()
@@ -395,8 +402,7 @@ if __name__ == "__main__":
     fps, length, v_width, v_height = get_video_properties(video)
 
     # Output videos writer
-    out = cv2.VideoWriter(os.path.join('output', 'player2test.avi'),
-                          cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), fps, (v_width, v_height))
+    out = cv2.VideoWriter(os.path.join('output', 'player2test.avi'), cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), fps, (v_width, v_height))
 
 
     frame_i = 0
@@ -413,13 +419,13 @@ if __name__ == "__main__":
                 cv2.rectangle(frame, (int(box[0]), int(box[1])), (int(box[2]), int(box[3])), [255, 0, 255], 2)
             out.write(frame)
             cv2.imshow('df', frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                cv2.destroyAllWindows()
+            # if cv2.waitKey(1) & 0xFF == ord('q'):
+                # cv2.destroyAllWindows()
 
         else:
             break
     video.release()
     out.release()
-    cv2.destroyAllWindows()
+    # cv2.destroyAllWindows()
 
     #model.find_player_2_box()

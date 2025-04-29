@@ -17,6 +17,8 @@ from utils import get_video_properties, get_dtype, get_stickman_line_connection
 from court_detection import CourtDetector
 import matplotlib.pyplot as plt
 
+# Create output folder if not exist
+os.makedirs('output', exist_ok=True)
 
 def get_stroke_predictions(video_path, stroke_recognition, strokes_frames, player_boxes):
     """
@@ -84,9 +86,14 @@ def find_strokes_indices(player_1_boxes, player_2_boxes, ball_positions, skeleto
     x = np.delete(x, indices)
     y1 = np.delete(player_2_y, indices)
     y2 = np.delete(player_2_x, indices)
-    player_2_f_y = interp1d(x, y1, fill_value="extrapolate")
 
-    player_2_f_x = interp1d(x, y2, fill_value="extrapolate")
+    if len(x) == 0 or len(y1) == 0 or len(y2) == 0:
+        player_2_f_y = None
+        player_2_f_x = None
+    else:
+        player_2_f_y = interp1d(x, y1, fill_value="extrapolate")
+        player_2_f_x = interp1d(x, y2, fill_value="extrapolate")
+
     xnew = np.linspace(0, len(player_2_y), num=len(player_2_y), endpoint=True)
 
     if verbose:
@@ -136,7 +143,10 @@ def find_strokes_indices(player_1_boxes, player_2_boxes, ball_positions, skeleto
     # Calculate dist between ball and top player
     for i in range(len(player_2_centers)):
         ball_pos = np.array([ball_f2_x(i), ball_f2_y(i)])
-        box_center = np.array([player_2_f_x(i), player_2_f_y(i)])
+        if player_2_f_x is not None and player_2_f_y is not None:
+            box_center = np.array([player_2_f_x(i), player_2_f_y(i)])
+        else:
+            box_center = np.array([0, 0])
         box_dist = np.linalg.norm(box_center - ball_pos)
         dists2.append(box_dist)
     dists2 = np.array(dists2)
@@ -334,14 +344,14 @@ def add_data_to_video(input_video, court_detector, players_detector, ball_detect
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
 
         # display frame
-        if show_video:
-            cv2.imshow('Output', img)
-            if cv2.waitKey(1) & 0xff == 27:
-                # cv2.destroyAllWindows()
-                try:
-                    cv2.destroyAllWindows()
-                except:
-                    pass
+        # if show_video:
+        #     cv2.imshow('Output', img)
+        #     if cv2.waitKey(1) & 0xff == 27:
+        #         # # cv2.destroyAllWindows()
+        #         try:
+        #             # cv2.destroyAllWindows()
+        #         except:
+        #             pass
 
         # save output videos
         if with_frame == 0:
@@ -356,30 +366,30 @@ def add_data_to_video(input_video, court_detector, players_detector, ball_detect
     print(f'New videos created, file name - {output_file}.avi')
     cap.release()
     out.release()
-    cv2.destroyAllWindows()
+    # cv2.destroyAllWindows()
 
 
 def create_top_view(court_detector, detection_model):
-    """
-    Creates top view video of the gameplay
-    """
-    court = court_detector.court_reference.court.copy()
-    court = cv2.line(court, *court_detector.court_reference.net, 255, 5)
-    v_width, v_height = court.shape[::-1]
-    court = cv2.cvtColor(court, cv2.COLOR_GRAY2BGR)
-    out = cv2.VideoWriter('output/top_view.avi',
-                          cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 30, (v_width, v_height))
-    # players location on court
+    frame_width = 1280
+    frame_height = 720
+    fps = 30  # whatever fps you want
+    out = cv2.VideoWriter('top_view_output.avi', cv2.VideoWriter_fourcc(*'XVID'), fps, (frame_width, frame_height))
+
     smoothed_1, smoothed_2 = detection_model.calculate_feet_positions(court_detector)
 
-    for feet_pos_1, feet_pos_2 in zip(smoothed_1, smoothed_2):
-        frame = court.copy()
-        frame = cv2.circle(frame, (int(feet_pos_1[0]), int(feet_pos_1[1])), 10, (0, 0, 255), 15)
-        if feet_pos_2[0] is not None:
+    for i, (feet_pos_1, feet_pos_2) in enumerate(zip(smoothed_1, smoothed_2)):
+        frame = np.zeros((frame_height, frame_width, 3), dtype=np.uint8)
+
+        if not (np.isnan(feet_pos_2[0]) or np.isnan(feet_pos_2[1])):
             frame = cv2.circle(frame, (int(feet_pos_2[0]), int(feet_pos_2[1])), 10, (0, 0, 255), 15)
+
+        if not (np.isnan(feet_pos_1[0]) or np.isnan(feet_pos_1[1])):
+            frame = cv2.circle(frame, (int(feet_pos_1[0]), int(feet_pos_1[1])), 10, (255, 0, 0), 15)
+
         out.write(frame)
-    out.release()
-    cv2.destroyAllWindows()
+
+    out.release()  # Very important to save the video properly
+
 
 
 def video_process(video_path, show_video=False, include_video=True,
@@ -456,7 +466,7 @@ def video_process(video_path, show_video=False, include_video=True,
     print('Processing frame %d/%d  FPS %04f' % (length, length, length / total_time), '\n', end='')
     print('Processing completed')
     video.release()
-    cv2.destroyAllWindows()
+    # # cv2.destroyAllWindows()
 
     detection_model.find_player_2_box()
 
@@ -503,7 +513,7 @@ def video_process(video_path, show_video=False, include_video=True,
 
 def main():
     s = time.time()
-    video_process(video_path='input_videos/input_video-1.mp4', show_video=True, stickman=True, stickman_box=False, smoothing=True,
+    video_process(video_path='input_videos/input_video-3.mp4', show_video=True, stickman=True, stickman_box=False, smoothing=True,
                   court=True, top_view=True)
     print(f'Total computation time : {time.time() - s} seconds')
 

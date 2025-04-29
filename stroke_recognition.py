@@ -90,19 +90,46 @@ class ActionRecognition:
         """
         Extract frame features using feature extractor model and add the results to the frames until now
         """
-        # ROI is a small box around the player
+        if player_box is None:
+            print("Warning: player_box is None. Skipping frame.")
+            return
+
         box_center = center_of_box(player_box)
-        patch = frame[int(box_center[1] - self.box_margin): int(box_center[1] + self.box_margin),
-                int(box_center[0] - self.box_margin): int(box_center[0] + self.box_margin)].copy()
-        patch = imutils.resize(patch, 299)
+
+        # Extract coordinates
+        x_center, y_center = int(box_center[0]), int(box_center[1])
+        y1 = max(0, y_center - self.box_margin)
+        y2 = min(frame.shape[0], y_center + self.box_margin)
+        x1 = max(0, x_center - self.box_margin)
+        x2 = min(frame.shape[1], x_center + self.box_margin)
+
+        # Validate patch dimensions
+        if x2 <= x1 or y2 <= y1:
+            print(f"Warning: Invalid patch dimensions (x: {x1}-{x2}, y: {y1}-{y2}). Skipping frame.")
+            return
+
+        patch = frame[y1:y2, x1:x2].copy()
+
+        # Check patch shape before resize
+        if patch.shape[0] == 0 or patch.shape[1] == 0:
+            print("Warning: Empty patch extracted. Skipping frame.")
+            return
+
+        try:
+            patch = imutils.resize(patch, 299)
+        except Exception as e:
+            print(f"Error during resizing: {e}. Skipping frame.")
+            return
+
         frame_t = patch.transpose((2, 0, 1)) / 255
         frame_tensor = torch.from_numpy(frame_t).type(self.dtype)
         frame_tensor = self.normalize(frame_tensor).unsqueeze(0)
+
         with torch.no_grad():
-            # forward pass
             features = self.feature_extractor(frame_tensor)
+
         features = features.unsqueeze(1)
-        # Concatenate the features to previous features
+
         if self.frames_features_seq is None:
             self.frames_features_seq = features
         else:
@@ -214,4 +241,4 @@ if __name__ == "__main__":
             break
     video.release()
 
-    cv2.destroyAllWindows()'''
+    # cv2.destroyAllWindows()'''

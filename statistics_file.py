@@ -23,14 +23,20 @@ class Statistics:
         court_height = self.court_tracker.court_reference.court_total_height
         heatmap_shape = (court_height // pit_size, court_width // pit_size)
         heatmap = np.zeros(heatmap_shape)
+
         for x, y in self.feet_bottom:
+            if np.isnan(x) or np.isnan(y):
+                continue  # Skip NaN values
             x = int(x)
             y = int(y)
-            heatmap[min(heatmap_shape[0] - 1,y // pit_size), min(heatmap_shape[1] - 1,x // pit_size)] += 1
+            heatmap[min(heatmap_shape[0] - 1, y // pit_size), min(heatmap_shape[1] - 1, x // pit_size)] += 1
+
         for x, y in self.feet_top:
+            if np.isnan(x) or np.isnan(y):
+                continue  # Skip NaN values
             x = int(x)
             y = int(y)
-            heatmap[min(heatmap_shape[0] - 1,y // pit_size), min(heatmap_shape[1] - 1,x // pit_size)] += 1
+            heatmap[min(heatmap_shape[0] - 1, y // pit_size), min(heatmap_shape[1] - 1, x // pit_size)] += 1
 
         return heatmap
 

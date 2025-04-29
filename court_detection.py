@@ -257,8 +257,8 @@ class CourtDetector:
             frame = self.frame.copy()
             court = self.add_court_overlay(frame, max_mat, (255, 0, 0))
             cv2.imshow('court', court)
-            if cv2.waitKey(0) & 0xff == 27:
-                cv2.destroyAllWindows()
+            # if cv2.waitKey(0) & 0xff == 27:
+                # cv2.destroyAllWindows()
         print(f'Score = {max_score}')
         print(f'Combinations tested = {k}')
 
@@ -341,10 +341,10 @@ class CourtDetector:
         gray[gray > 0] = 1
         gray = cv2.dilate(gray, np.ones((9, 9), dtype=np.uint8))
         court = self.get_warped_court()
-        total_white_pixels = sum(sum(court))
+        total_white_pixels = np.sum(court.astype(np.uint64))
         sub = court.copy()
         sub[gray == 1] = 0
-        accuracy = 100 - (sum(sum(sub)) / total_white_pixels) * 100
+        accuracy = 100 - (np.sum(sub.astype(np.uint64)) / total_white_pixels) * 100
         if verbose:
             plt.figure()
             plt.subplot(1, 3, 1)
@@ -421,8 +421,8 @@ class CourtDetector:
             if len(new_points) < 50:
                 if self.dist > 20:
                     cv2.imshow('court', copy)
-                    if cv2.waitKey(0) & 0xff == 27:
-                        cv2.destroyAllWindows()
+                    # if cv2.waitKey(0) & 0xff == 27:
+                        # cv2.destroyAllWindows()
                     self.detect(frame)
                     conf_points = np.array(self.court_reference.court_conf[self.best_conf], dtype=np.float32).reshape(
                         (-1, 1, 2))
@@ -492,10 +492,10 @@ def display_lines_on_frame(frame, horizontal=(), vertical=()):
         cv2.circle(frame, (x1, y1), 1, (255, 0, 0), 2)
         cv2.circle(frame, (x2, y2), 1, (255, 0, 0), 2)
 
-    cv2.imshow('court', frame)
-    if cv2.waitKey(0) & 0xff == 27:
-        cv2.destroyAllWindows()
-    # cv2.imwrite('../report/t.png', frame)
+    # cv2.imshow('court', frame)
+    # if cv2.waitKey(0) & 0xff == 27:
+        # cv2.destroyAllWindows()
+    cv2.imwrite('../report/t.png', frame)
     return frame
 
 
@@ -511,8 +511,8 @@ def display_lines_and_points_on_frame(frame, lines=(), points=(), line_color=(0,
         frame = cv2.circle(frame, p, 2, point_color, 2)
 
     cv2.imshow('court', frame)
-    if cv2.waitKey(0) & 0xff == 27:
-        cv2.destroyAllWindows()
+    # if cv2.waitKey(0) & 0xff == 27:
+        # cv2.destroyAllWindows()
     return frame
 
 
@@ -530,6 +530,6 @@ if __name__ == '__main__':
     img[int(bottom[1]-10):int(bottom[1]+10), int(bottom[0] - 10):int(bottom[0]+10), :] = (0,0,0)
     img[int(top[1]-10):int(top[1]+10), int(top[0] - 10):int(top[0]+10), :] = (0,0,0)
     cv2.imshow('df', img)
-    if cv2.waitKey(0):
-        cv2.destroyAllWindows()
+    # if cv2.waitKey(0):
+        # cv2.destroyAllWindows()
     print(f'time = {time.time() - s}')
